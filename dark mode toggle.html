@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dark Mode Toggle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root[data-theme="light"] {
+      --bg:        #f0ece3;
+      --surface:   #faf8f4;
+      --border:    #d6cfc3;
+      --text:      #1a1713;
+      --subtext:   #6e675c;
+      --accent:    #c0392b;
+      --toggle-bg: #d6cfc3;
+      --toggle-knob: #1a1713;
+      --shadow:    rgba(0,0,0,0.10);
+    }
+    :root[data-theme="dark"] {
+      --bg:        #0f0e0c;
+      --surface:   #1a1916;
+      --border:    #2e2c28;
+      --text:      #f0ece3;
+      --subtext:   #7a7469;
+      --accent:    #e74c3c;
+      --toggle-bg: #2e2c28;
+      --toggle-knob: #f0ece3;
+      --shadow:    rgba(0,0,0,0.50);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { transition: background 0.4s, color 0.4s; }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      display: grid;
+      place-items: center;
+      transition: background 0.4s, color 0.4s;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 56px 64px;
+      width: min(480px, 92vw);
+      box-shadow: 0 8px 48px var(--shadow);
+      transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--subtext);
+      transition: color 0.4s;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      transition: color 0.4s;
+      margin-bottom: 10px;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .desc {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--subtext);
+      line-height: 1.6;
+      margin-bottom: 48px;
+      transition: color 0.4s;
+    }
+
+    /* Toggle */
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .toggle-label {
+      font-size: 13px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.05em;
+      color: var(--subtext);
+      transition: color 0.4s;
+      min-width: 40px;
+    }
+
+    .toggle-label.active { color: var(--text); }
+
+    .toggle {
+      position: relative;
+      width: 72px;
+      height: 36px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+    .track {
+      position: absolute;
+      inset: 0;
+      background: var(--toggle-bg);
+      border-radius: 36px;
+      border: 1px solid var(--border);
+      transition: background 0.35s, border-color 0.35s;
+    }
+
+    .knob {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 26px;
+      height: 26px;
+      background: var(--toggle-knob);
+      border-radius: 50%;
+      transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), background 0.35s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    .toggle input:checked ~ .track { background: var(--accent); border-color: var(--accent); }
+    .toggle input:checked ~ .knob { transform: translateX(36px); }
+
+    /* Status pill */
+    .status {
+      margin-top: 40px;
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--subtext);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: border-color 0.4s, color 0.4s;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 40px 0;
+      transition: background 0.4s;
+    }
+
+    .footer {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--subtext);
+      opacity: 0.5;
+      transition: color 0.4s;
+    }
+
+    /* Page-level fade on theme change */
+    .theme-flash {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      opacity: 0;
+      z-index: 9999;
+      transition: opacity 0.15s;
+    }
+    .theme-flash.active { opacity: 0.3; }
+  </style>
+</head>
+<body>
+  <div class="theme-flash" id="flash"></div>
+  <div class="card">
+    <div class="eyebrow">Mini App 01</div>
+    <h1>Dark<br/><span>Mode.</span></h1>
+    <p class="desc">Toggle between light and dark themes. Your preference is saved to localStorage and persists across page refreshes.</p>
+
+    <div class="toggle-wrapper">
+      <span class="toggle-label" id="label-light">Light</span>
+      <label class="toggle" aria-label="Toggle dark mode">
+        <input type="checkbox" id="themeToggle" />
+        <div class="track"></div>
+        <div class="knob" id="knobIcon">☀️</div>
+      </label>
+      <span class="toggle-label" id="label-dark">Dark</span>
+    </div>
+
+    <div class="status">
+      <div class="status-dot"></div>
+      <span id="statusText">PREFERENCE STORED IN LOCALSTORAGE</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="footer">Persists on refresh · localStorage key: "theme"</div>
+  </div>
+
+  <script>
+    const html = document.documentElement;
+    const toggle = document.getElementById('themeToggle');
+    const knob = document.getElementById('knobIcon');
+    const flash = document.getElementById('flash');
+    const labelLight = document.getElementById('label-light');
+    const labelDark = document.getElementById('label-dark');
+    const statusText = document.getElementById('statusText');
+
+    function applyTheme(theme, animate = false) {
+      if (animate) {
+        flash.classList.add('active');
+        setTimeout(() => flash.classList.remove('active'), 150);
+      }
+      html.setAttribute('data-theme', theme);
+      toggle.checked = theme === 'dark';
+      knob.textContent = theme === 'dark' ? '🌙' : '☀️';
+      labelLight.classList.toggle('active', theme === 'light');
+      labelDark.classList.toggle('active', theme === 'dark');
+      statusText.textContent = `"${theme}" SAVED TO LOCALSTORAGE`;
+    }
+
+    // Load persisted preference
+    const saved = localStorage.getItem('theme') || 'light';
+    applyTheme(saved);
+
+    toggle.addEventListener('change', () => {
+      const next = toggle.checked ? 'dark' : 'light';
+      localStorage.setItem('theme', next);
+      applyTheme(next, true);
+    });
+  </script>
+</body>
+</html>
